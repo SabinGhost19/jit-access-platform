@@ -37,7 +37,11 @@ def _create_service_account(
     service_account_name: str,
 ) -> None:
     body = client.V1ServiceAccount(metadata=client.V1ObjectMeta(name=service_account_name))
-    core_api.create_namespaced_service_account(namespace=target_namespace, body=body)
+    try:
+        core_api.create_namespaced_service_account(namespace=target_namespace, body=body)
+    except ApiException as error:
+        if error.status != 409:
+            raise
 
 
 def _create_role_binding(
@@ -62,7 +66,11 @@ def _create_role_binding(
             )
         ],
     )
-    rbac_api.create_namespaced_role_binding(namespace=target_namespace, body=rolebinding)
+    try:
+        rbac_api.create_namespaced_role_binding(namespace=target_namespace, body=rolebinding)
+    except ApiException as error:
+        if error.status != 409:
+            raise
 
 
 def _issue_token(
@@ -118,12 +126,17 @@ def startup_fn(**_: Any) -> None:
 @kopf.on.create("devsecops.licenta.ro", "v1", "jitaccessrequests")
 def on_jit_request_create(
     spec: dict[str, Any],
+    status: dict[str, Any],
     name: str,
     namespace: str,
     patch: kopf.Patch,
     logger: kopf.Logger,
     **_: Any,
 ) -> None:
+    if status.get("state") == "ACTIVE" and status.get("tokenIssued") is True:
+        logger.info("Request %s is already active. Skipping duplicate create processing.", name)
+        return
+
     settings = load_settings()
     core_api = client.CoreV1Api()
     rbac_api = client.RbacAuthorizationV1Api()

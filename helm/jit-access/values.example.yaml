@@ -8,7 +8,7 @@ operator:
   replicaCount: 1
   image:
     repository: ghcr.io/sabinghost19/jit-access-platform-operator
-    tag: v0.0.7
+    tag: v0.0.9
     pullPolicy: IfNotPresent
   serviceAccount:
     create: true
@@ -18,7 +18,7 @@ backend:
   replicaCount: 1
   image:
     repository: ghcr.io/sabinghost19/jit-access-platform-backend
-    tag: v0.0.7
+    tag: v0.0.9
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
@@ -35,7 +35,7 @@ frontend:
   replicaCount: 1
   image:
     repository: ghcr.io/sabinghost19/jit-access-platform-frontend
-    tag: v0.0.7
+    tag: v0.0.9
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
