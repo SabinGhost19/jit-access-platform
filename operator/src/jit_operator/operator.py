@@ -7,9 +7,9 @@ import kopf
 from kubernetes import client, config
 from kubernetes.client.exceptions import ApiException
 
-from .anti_abuse import AntiAbuseEngine
-from .audit_db import AuditDB
-from .config import OperatorSettings, parse_policies, load_settings
+from jit_operator.anti_abuse import AntiAbuseEngine
+from jit_operator.audit_db import AuditDB
+from jit_operator.config import OperatorSettings, parse_policies, load_settings
 
 
 def _utc_now() -> datetime:

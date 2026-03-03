@@ -11,7 +11,8 @@ RUN pip install --upgrade pip && pip wheel --no-cache-dir --wheel-dir /wheels -r
 FROM python:3.11-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/src
 
 WORKDIR /app
 
