@@ -10,8 +10,6 @@ RUN npm run build
 
 FROM nginx:1.27-alpine AS runtime
 
-RUN addgroup -g 101 -S nginxgroup || true && adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginxgroup nginxuser || true
-
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 
