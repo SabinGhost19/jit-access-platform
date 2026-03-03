@@ -1,3 +1,10 @@
+## [0.0.8](https://github.com/SabinGhost19/jit-access-platform/compare/v0.0.7...v0.0.8) (2026-03-03)
+
+
+### Bug Fixes
+
+* api versioning ([5f6e827](https://github.com/SabinGhost19/jit-access-platform/commit/5f6e82744ead8d85ab206482be9aef654bb28046))
+
 ## [0.0.6](https://github.com/SabinGhost19/jit-access-platform/compare/v0.0.5...v0.0.6) (2026-03-03)
 
 
