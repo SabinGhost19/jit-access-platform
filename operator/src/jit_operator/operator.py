@@ -79,9 +79,13 @@ def _issue_token(
     service_account_name: str,
     expiration_seconds: int,
 ) -> str:
-    token_request = client.V1TokenRequest(
-        spec=client.V1TokenRequestSpec(expiration_seconds=expiration_seconds)
-    )
+    token_request = {
+        "apiVersion": "authentication.k8s.io/v1",
+        "kind": "TokenRequest",
+        "spec": {
+            "expirationSeconds": expiration_seconds,
+        },
+    }
     token = core_api.create_namespaced_service_account_token(
         name=service_account_name,
         namespace=target_namespace,
