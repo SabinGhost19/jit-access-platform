@@ -32,6 +32,8 @@ class AuditRow:
 class BackendDB:
     def __init__(self, db_path: Path) -> None:
         self.db_path = db_path
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._init_schema()
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -42,6 +44,45 @@ class BackendDB:
             connection.commit()
         finally:
             connection.close()
+
+    def _init_schema(self) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS jit_sessions (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  request_name TEXT NOT NULL,
+                  request_namespace TEXT NOT NULL,
+                  developer_id TEXT NOT NULL,
+                  target_namespace TEXT NOT NULL,
+                  requested_role TEXT NOT NULL,
+                  requested_duration_minutes INTEGER NOT NULL,
+                  effective_duration_minutes INTEGER NOT NULL,
+                  reason TEXT NOT NULL,
+                  status TEXT NOT NULL,
+                  created_at TEXT NOT NULL,
+                  expires_at TEXT,
+                  rolebinding_name TEXT,
+                  serviceaccount_name TEXT,
+                  token_issued INTEGER NOT NULL DEFAULT 0,
+                  UNIQUE(request_name, request_namespace)
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS audit_logs (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  request_name TEXT,
+                  request_namespace TEXT,
+                  developer_id TEXT,
+                  action TEXT NOT NULL,
+                  status TEXT NOT NULL,
+                  message TEXT NOT NULL,
+                  created_at TEXT NOT NULL
+                )
+                """
+            )
 
     def dashboard_metrics(self) -> dict[str, int]:
         with self._connect() as connection:
