@@ -61,8 +61,8 @@ jobs:
     needs: [helm-lint, helm-template]
     if: github.event_name != 'pull_request'
     outputs:
-      release_tag: ${{ steps.bump.outputs.new_tag }}
-      release_version: ${{ steps.bump.outputs.new_version }}
+      release_tag: ${{ steps.resolve.outputs.release_tag }}
+      release_version: ${{ steps.resolve.outputs.release_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -71,6 +71,7 @@ jobs:
 
       - name: Bump semver tag
         id: bump
+        continue-on-error: true
         uses: mathieudutour/github-tag-action@v6.2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -78,9 +79,28 @@ jobs:
           default_bump: patch
           release_branches: main
 
+      - name: Resolve release tag
+        id: resolve
+        shell: bash
+        run: |
+          git fetch --tags --force
+          if [[ -n "${{ steps.bump.outputs.new_tag }}" ]]; then
+            release_tag="${{ steps.bump.outputs.new_tag }}"
+            release_version="${{ steps.bump.outputs.new_version }}"
+          else
+            release_tag="$(git tag --list 'v*' --sort=-v:refname | head -n1)"
+            if [[ -z "$release_tag" ]]; then
+              echo "No release tag available." >&2
+              exit 1
+            fi
+            release_version="${release_tag#v}"
+          fi
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "release_version=$release_version" >> "$GITHUB_OUTPUT"
+
       - name: Version summary
         run: |
-          echo "Generated release tag: ${{ steps.bump.outputs.new_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "Release tag: ${{ steps.resolve.outputs.release_tag }}" >> $GITHUB_STEP_SUMMARY
 
   build-and-push-images:
     runs-on: ubuntu-latest
