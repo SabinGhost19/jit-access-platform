@@ -1,3 +1,10 @@
+## [0.0.10](https://github.com/SabinGhost19/jit-access-platform/compare/v0.0.9...v0.0.10) (2026-03-03)
+
+
+### Bug Fixes
+
+* patch retry with service account ([fc58113](https://github.com/SabinGhost19/jit-access-platform/commit/fc58113d95b8eed87e39e2ac381cfd02a24f0480))
+
 ## [0.0.8](https://github.com/SabinGhost19/jit-access-platform/compare/v0.0.7...v0.0.8) (2026-03-03)
 
 
