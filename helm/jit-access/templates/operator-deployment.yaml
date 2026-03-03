@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "jit-access.fullname" . }}-operator
+  labels:
+    {{- include "jit-access.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.operator.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: operator
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        {{- include "jit-access.labels" . | nindent 8 }}
+        app.kubernetes.io/component: operator
+    spec:
+      serviceAccountName: {{ include "jit-access.operatorServiceAccountName" . }}
+      containers:
+        - name: operator
+          image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}"
+          imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
+          env:
+            - name: JIT_POLICIES_CONFIGMAP
+              value: jit-security-policies
+            - name: JIT_AUDIT_DB_PATH
+              value: /data/{{ .Values.backend.sqlite.fileName }}
+            - name: JIT_REQUEST_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: sqlite-data
+              mountPath: /data
+      {{- if .Values.adminUI.enabled }}
+      volumes:
+        - name: sqlite-data
+          persistentVolumeClaim:
+            claimName: {{ include "jit-access.fullname" . }}-sqlite
+      {{- else }}
+      volumes:
+        - name: sqlite-data
+          emptyDir: {}
+      {{- end }}

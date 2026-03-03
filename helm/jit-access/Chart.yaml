@@ -1,0 +1,6 @@
+apiVersion: v2
+name: jit-access
+description: Zero-Trust Just-In-Time Access platform (Operator + API + Admin UI)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

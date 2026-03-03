@@ -1,0 +1,47 @@
+{{- if .Values.adminUI.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "jit-access.fullname" . }}-backend
+  labels:
+    {{- include "jit-access.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: backend
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        {{- include "jit-access.labels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+    spec:
+      serviceAccountName: {{ include "jit-access.fullname" . }}-backend
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.backend.service.port }}
+          env:
+            - name: JIT_ADMIN_SECRET_NAME
+              value: {{ default (printf "%s-admin-auth" (include "jit-access.fullname" .)) .Values.adminAuth.existingSecret | quote }}
+            - name: JIT_ADMIN_SECRET_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+            - name: JIT_JWT_SECRET
+              value: {{ .Values.backend.jwt.secretKey | quote }}
+            - name: JIT_JWT_ALGO
+              value: {{ .Values.backend.jwt.algorithm | quote }}
+            - name: JIT_JWT_EXPIRE_MIN
+              value: {{ .Values.backend.jwt.expireMinutes | quote }}
+            - name: JIT_DB_PATH
+              value: {{ printf "%s/%s" .Values.backend.sqlite.mountPath .Values.backend.sqlite.fileName | quote }}
+          volumeMounts:
+            - name: sqlite-data
+              mountPath: {{ .Values.backend.sqlite.mountPath }}
+      volumes:
+        - name: sqlite-data
+          persistentVolumeClaim:
+            claimName: {{ include "jit-access.fullname" . }}-sqlite
+{{- end }}

@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "jit-access.operatorServiceAccountName" . }}
+  labels:
+    {{- include "jit-access.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "jit-access.fullname" . }}-operator
+  labels:
+    {{- include "jit-access.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["serviceaccounts", "secrets", "configmaps", "namespaces"]
+    verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["rolebindings", "roles", "clusterroles"]
+    verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
+  - apiGroups: ["authentication.k8s.io"]
+    resources: ["tokenreviews"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    verbs: ["create"]
+  - apiGroups: ["devsecops.licenta.ro"]
+    resources: ["jitaccessrequests"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  - apiGroups: ["devsecops.licenta.ro"]
+    resources: ["jitaccessrequests/status"]
+    verbs: ["get", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "jit-access.fullname" . }}-operator
+  labels:
+    {{- include "jit-access.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "jit-access.operatorServiceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "jit-access.fullname" . }}-operator

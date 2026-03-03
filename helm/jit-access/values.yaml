@@ -1,0 +1,68 @@
+nameOverride: ""
+fullnameOverride: ""
+
+adminUI:
+  enabled: true
+
+operator:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/sabinghost19/jit-access-platform-operator
+    tag: v0.1.0
+    pullPolicy: IfNotPresent
+  serviceAccount:
+    create: true
+    name: ""
+
+backend:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/sabinghost19/jit-access-platform-backend
+    tag: v0.1.0
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+  jwt:
+    secretKey: "change-me-super-secret"
+    algorithm: HS256
+    expireMinutes: 120
+  sqlite:
+    mountPath: /data
+    fileName: jit_audit.db
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/sabinghost19/jit-access-platform-frontend
+    tag: v0.1.0
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+
+adminAuth:
+  existingSecret: ""
+  username: admin
+  password: admin123
+
+securityPolicies:
+  blockedUsers:
+    - "blocked.user@licenta.ro"
+    - "compromised.user@licenta.ro"
+  antiAbuse:
+    maxActiveSessions: 1
+    cooldownMinutes: 15
+    maxRequestsPerDay: 5
+    maxDurationMinutes: 120
+
+ingress:
+  enabled: true
+  className: nginx
+  host: jit-admin.local
+  path: /
+  pathType: Prefix
+  annotations:
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,192.168.0.0/16"
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+  tls: []
