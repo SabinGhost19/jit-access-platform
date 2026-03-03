@@ -25,4 +25,4 @@ COPY src ./src
 
 USER appuser
 
-CMD ["kopf", "run", "--standalone", "src/jit_operator/operator.py"]
+CMD ["kopf", "run", "--standalone", "--all-namespaces", "src/jit_operator/operator.py"]

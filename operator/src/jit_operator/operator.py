@@ -55,7 +55,7 @@ def _create_role_binding(
             name=requested_role,
         ),
         subjects=[
-            client.V1Subject(
+            client.RbacV1Subject(
                 kind="ServiceAccount",
                 name=service_account_name,
                 namespace=target_namespace,

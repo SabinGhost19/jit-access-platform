@@ -1,0 +1,11 @@
+apiVersion: devsecops.licenta.ro/v1
+kind: JITAccessRequest
+metadata:
+  name: jit-hard-cap
+  namespace: jit-system
+spec:
+  developerId: "bob@example.com"
+  targetNamespace: demo-target
+  requestedRole: view
+  duration: 10h
+  reason: "Duration should be capped by policy"

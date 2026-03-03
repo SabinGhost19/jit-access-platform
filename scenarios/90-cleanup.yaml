@@ -1,0 +1,33 @@
+apiVersion: devsecops.licenta.ro/v1
+kind: JITAccessRequest
+metadata:
+  name: jit-happy-path
+  namespace: jit-system
+---
+apiVersion: devsecops.licenta.ro/v1
+kind: JITAccessRequest
+metadata:
+  name: jit-concurrent-second
+  namespace: jit-system
+---
+apiVersion: devsecops.licenta.ro/v1
+kind: JITAccessRequest
+metadata:
+  name: jit-hard-cap
+  namespace: jit-system
+---
+apiVersion: devsecops.licenta.ro/v1
+kind: JITAccessRequest
+metadata:
+  name: jit-blocked-user
+  namespace: jit-system
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-target
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-target-2

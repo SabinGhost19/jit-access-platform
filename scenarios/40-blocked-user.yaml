@@ -1,0 +1,11 @@
+apiVersion: devsecops.licenta.ro/v1
+kind: JITAccessRequest
+metadata:
+  name: jit-blocked-user
+  namespace: jit-system
+spec:
+  developerId: "blocked.user@company.com"
+  targetNamespace: demo-target
+  requestedRole: view
+  duration: 30m
+  reason: "Blocked user policy check"

@@ -1,0 +1,11 @@
+apiVersion: devsecops.licenta.ro/v1
+kind: JITAccessRequest
+metadata:
+  name: jit-happy-path
+  namespace: jit-system
+spec:
+  developerId: "alice@example.com"
+  targetNamespace: demo-target
+  requestedRole: view
+  duration: 30m
+  reason: "Happy path validation"
