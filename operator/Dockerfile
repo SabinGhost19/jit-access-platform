@@ -25,4 +25,6 @@ COPY src ./src
 
 USER appuser
 
-CMD ["kopf", "run", "--standalone", "--all-namespaces", "src/jit_operator/operator.py"]
+ENV PYTHONPATH=/app/src
+
+CMD ["kopf", "run", "--standalone", "--all-namespaces", "-m", "jit_operator.operator"]

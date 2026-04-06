@@ -1,0 +1,110 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "operator/**"
+      - "helm/**"
+  pull_request:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_BACKEND: ${{ github.repository }}-backend
+  IMAGE_NAME_FRONTEND: ${{ github.repository }}-frontend
+  IMAGE_NAME_OPERATOR: ${{ github.repository }}-operator
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed for updating values.yaml
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_OPERATOR }}
+          tags: |
+            type=sha,format=short
+
+      # Build and push Operator
+      - name: Build and push Operator
+        uses: docker/build-push-action@v5
+        with:
+          context: ./operator
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_OPERATOR }}:sha-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      # Build and push Backend
+      - name: Build and push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:sha-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      # Build and push Frontend
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:sha-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  update-helm:
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update Helm Chart values with new tags
+        run: |
+          TAG="sha-${{ github.sha }}"
+            
+          # Utilizăm sed pentru a căuta secțiunea operator: și a edita rândul tag imediat dedesubt (în cazul jit-access)
+          # NOTA: Comanda depinde de structura internă YAML a chart-ului, un tool gen yq este mult mai ideal. 
+          # Instalăm yq
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod a+x /usr/local/bin/yq
+            
+          # Presupunând că tu pui tag-urile pe .operator.image.tag, .backend.image.tag, .frontend.image.tag în jit-api values
+          yq e ".operator.image.tag = \"${TAG}\"" -i helm/jit-access/values.yaml
+          yq e ".backend.image.tag = \"${TAG}\"" -i helm/jit-access/values.yaml
+          yq e ".frontend.image.tag = \"${TAG}\"" -i helm/jit-access/values.yaml
+
+      - name: Commit and push updated Helm chart
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add helm/jit-access/values.yaml
+          git commit -m "chore(helm): update image tags to sha-${{ github.sha }} [skip ci]" || echo "No changes to commit"
+          git push
