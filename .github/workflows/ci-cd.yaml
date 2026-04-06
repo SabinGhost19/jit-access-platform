@@ -15,9 +15,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME_BACKEND: ${{ github.repository }}-backend
-  IMAGE_NAME_FRONTEND: ${{ github.repository }}-frontend
-  IMAGE_NAME_OPERATOR: ${{ github.repository }}-operator
 
 jobs:
   build-and-push:
@@ -29,6 +26,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Downcase repository name
+        run: echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -42,9 +42,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_OPERATOR }}
+            ${{ env.REGISTRY }}/${{ env.REPO_LC }}-backend
+            ${{ env.REGISTRY }}/${{ env.REPO_LC }}-frontend
+            ${{ env.REGISTRY }}/${{ env.REPO_LC }}-operator
           tags: |
             type=sha,format=short
 
@@ -54,7 +54,7 @@ jobs:
         with:
           context: ./operator
           push: ${{ github.ref == 'refs/heads/main' }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_OPERATOR }}:sha-${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.REPO_LC }}-operator:sha-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
 
       # Build and push Backend
@@ -63,7 +63,7 @@ jobs:
         with:
           context: ./backend
           push: ${{ github.ref == 'refs/heads/main' }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:sha-${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.REPO_LC }}-backend:sha-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
 
       # Build and push Frontend
@@ -72,7 +72,7 @@ jobs:
         with:
           context: ./frontend
           push: ${{ github.ref == 'refs/heads/main' }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:sha-${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.REPO_LC }}-frontend:sha-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
 
   update-helm:
