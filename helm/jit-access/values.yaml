@@ -1,32 +1,24 @@
 operator:
   image:
     repository: ghcr.io/sabinghost19/jit-access-platform-operator
-    tag: latest
+    tag: v0.1.4
     pullPolicy: IfNotPresent
-
   resources: {}
-
   securityContext:
     runAsNonRoot: true
     runAsUser: 10001
     runAsGroup: 10001
     fsGroup: 10001
-
   podSecurityContext: {}
-
   env:
     requestNamespace: default
     policiesConfigMap: jit-security-policies
-
 serviceAccount:
   create: true
   name: ""
-
 rbac:
   create: true
-
 replicaCount: 1
-
 persistence:
   enabled: true
   existingClaim: ""
@@ -34,7 +26,6 @@ persistence:
   accessModes:
     - ReadWriteOnce
   storageClassName: ""
-
 policiesConfigMap:
   create: true
   name: jit-security-policies
@@ -44,7 +35,6 @@ policiesConfigMap:
     cooldownMinutes: 15
     maxRequestsPerDay: 5
     maxDurationMinutes: 120
-
 nodeSelector: {}
 tolerations: []
 affinity: {}
