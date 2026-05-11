@@ -26,6 +26,7 @@ class OperatorSettings:
     db_path: Path
     policies_configmap_name: str
     request_namespace: str
+    policies_namespace: str  # namespace where jit-security-policies ConfigMap lives
 
 
 DEFAULT_POLICIES = SecurityPolicies(
@@ -35,10 +36,12 @@ DEFAULT_POLICIES = SecurityPolicies(
 
 
 def load_settings() -> OperatorSettings:
+    request_namespace = os.getenv("JIT_REQUEST_NAMESPACE", "default")
     return OperatorSettings(
         db_path=Path(os.getenv("JIT_AUDIT_DB_PATH", "/data/jit_audit.db")),
         policies_configmap_name=os.getenv("JIT_POLICIES_CONFIGMAP", "jit-security-policies"),
-        request_namespace=os.getenv("JIT_REQUEST_NAMESPACE", "default"),
+        request_namespace=request_namespace,
+        policies_namespace=os.getenv("JIT_POLICIES_NAMESPACE", request_namespace),
     )
 
 

@@ -1,61 +1,50 @@
-nameOverride: ""
-fullnameOverride: ""
-adminUI:
-  enabled: true
 operator:
-  replicaCount: 1
   image:
     repository: ghcr.io/sabinghost19/jit-access-platform-operator
-    tag: sha-fe12284fecb14ad344e52156dfd7e3b201a56655
+    tag: latest
     pullPolicy: IfNotPresent
-  serviceAccount:
-    create: true
-    name: ""
-backend:
-  replicaCount: 1
-  image:
-    repository: ghcr.io/sabinghost19/jit-access-platform-backend
-    tag: sha-fe12284fecb14ad344e52156dfd7e3b201a56655
-    pullPolicy: IfNotPresent
-  service:
-    type: ClusterIP
-    port: 8000
-  jwt:
-    secretKey: "change-me-super-secret"
-    algorithm: HS256
-    expireMinutes: 120
-  sqlite:
-    mountPath: /data
-    fileName: jit_audit.db
-frontend:
-  replicaCount: 1
-  image:
-    repository: ghcr.io/sabinghost19/jit-access-platform-frontend
-    tag: sha-fe12284fecb14ad344e52156dfd7e3b201a56655
-    pullPolicy: IfNotPresent
-  service:
-    type: ClusterIP
-    port: 80
-adminAuth:
-  existingSecret: ""
-  username: admin
-  password: admin123
-securityPolicies:
-  blockedUsers:
-    - "blocked.user@licenta.ro"
-    - "compromised.user@licenta.ro"
+
+  resources: {}
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+
+  podSecurityContext: {}
+
+  env:
+    requestNamespace: default
+    policiesConfigMap: jit-security-policies
+
+serviceAccount:
+  create: true
+  name: ""
+
+rbac:
+  create: true
+
+replicaCount: 1
+
+persistence:
+  enabled: true
+  existingClaim: ""
+  size: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+
+policiesConfigMap:
+  create: true
+  name: jit-security-policies
+  blockedUsers: []
   antiAbuse:
     maxActiveSessions: 1
     cooldownMinutes: 15
     maxRequestsPerDay: 5
     maxDurationMinutes: 120
-ingress:
-  enabled: true
-  className: nginx
-  host: jit-admin.local
-  path: /
-  pathType: Prefix
-  annotations:
-    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,192.168.0.0/16"
-    nginx.ingress.kubernetes.io/limit-rps: "20"
-  tls: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

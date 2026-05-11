@@ -2,18 +2,14 @@ name: jit-access-platform-ci
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
     paths:
       - "operator/**"
-      - "backend/**"
-      - "frontend/**"
       - "helm/jit-access/**"
       - ".github/workflows/jit-access-platform-ci.yaml"
   pull_request:
     paths:
       - "operator/**"
-      - "backend/**"
-      - "frontend/**"
       - "helm/jit-access/**"
       - ".github/workflows/jit-access-platform-ci.yaml"
   workflow_dispatch:
@@ -25,7 +21,6 @@ permissions:
 env:
   REGISTRY: ghcr.io
   CHART_PATH: helm/jit-access
-  CHART_NAME: jit-access
 
 jobs:
   helm-lint:
@@ -42,7 +37,7 @@ jobs:
 
   helm-template:
     runs-on: ubuntu-latest
-    needs: helm-lint
+    needs: [ helm-lint ]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -51,14 +46,15 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: Helm template validation
-        run: helm template jit-access ${{ env.CHART_PATH }} --namespace jit-system > /tmp/jit-rendered.yaml
+        run: helm template jit-access ${{ env.CHART_PATH }} --namespace jit-system >
+          /tmp/jit-rendered.yaml
 
       - name: Check rendered output is not empty
         run: test -s /tmp/jit-rendered.yaml
 
   version-tag:
     runs-on: ubuntu-latest
-    needs: [helm-lint, helm-template]
+    needs: [ helm-lint, helm-template ]
     if: github.event_name != 'pull_request'
     outputs:
       release_tag: ${{ steps.resolve.outputs.release_tag }}
@@ -104,7 +100,7 @@ jobs:
 
   build-and-push-images:
     runs-on: ubuntu-latest
-    needs: [version-tag]
+    needs: [ version-tag ]
     if: github.event_name != 'pull_request'
     strategy:
       matrix:
@@ -113,14 +109,6 @@ jobs:
             context: ./operator
             dockerfile: ./operator/Dockerfile
             image_name: jit-access-platform-operator
-          - component: backend
-            context: ./backend
-            dockerfile: ./backend/Dockerfile
-            image_name: jit-access-platform-backend
-          - component: frontend
-            context: ./frontend
-            dockerfile: ./frontend/Dockerfile
-            image_name: jit-access-platform-frontend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -169,36 +157,29 @@ jobs:
           echo "Tags:" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
 
-  package-and-push-chart:
+  update-chart-values:
     runs-on: ubuntu-latest
-    needs: [version-tag]
-    if: github.event_name != 'pull_request'
+    needs: [ version-tag, build-and-push-images ]
+    if: github.event_name != 'pull_request' && github.actor != 'github-actions[bot]'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
 
-      - name: Setup Helm
-        uses: azure/setup-helm@v4
-
-      - name: Normalize chart registry path
-        id: chartvars
-        shell: bash
+      - name: Update operator tag in Helm values
+        env:
+          TAG: ${{ needs.version-tag.outputs.release_tag }}
         run: |
-          echo "chart_repo=oci://${REGISTRY}/${GITHUB_REPOSITORY_OWNER,,}/charts" >> "$GITHUB_OUTPUT"
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod a+x /usr/local/bin/yq
 
-      - name: Package Helm chart
-        run: |
-          mkdir -p /tmp/chart-dist
-          helm package ${{ env.CHART_PATH }} --destination /tmp/chart-dist --version ${{ needs.version-tag.outputs.release_version }} --app-version ${{ needs.version-tag.outputs.release_version }}
+          yq e '.operator.image.tag = strenv(TAG)' -i helm/jit-access/values.yaml
 
-      - name: Login Helm registry (GHCR)
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-
-      - name: Push Helm chart to GHCR OCI
-        run: |
-          helm push /tmp/chart-dist/${{ env.CHART_NAME }}-*.tgz ${{ steps.chartvars.outputs.chart_repo }}
-
-      - name: Chart summary
-        run: |
-          echo "Pushed Helm chart tag: ${{ needs.version-tag.outputs.release_version }}" >> $GITHUB_STEP_SUMMARY
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add helm/jit-access/values.yaml
+          git commit -m "chore(helm): update operator image tag to ${TAG} [skip ci]" || echo "No changes to commit"
+          git pull --rebase origin main
+          git push

@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "jit-access.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "jit-access.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "jit-access.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "jit-access.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ include "jit-access.serviceAccountName" . }}
+      securityContext:
+{{ toYaml .Values.operator.podSecurityContext | indent 8 }}
+      containers:
+        - name: operator
+          image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}"
+          imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
+          securityContext:
+{{ toYaml .Values.operator.securityContext | indent 12 }}
+          env:
+            - name: JIT_AUDIT_DB_PATH
+              value: /data/jit_audit.db
+            - name: JIT_REQUEST_NAMESPACE
+              value: {{ .Values.operator.env.requestNamespace | quote }}
+            - name: JIT_POLICIES_CONFIGMAP
+              value: {{ .Values.operator.env.policiesConfigMap | quote }}
+            - name: JIT_POLICIES_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+          volumeMounts:
+            - name: audit-db
+              mountPath: /data
+          resources:
+{{ toYaml .Values.operator.resources | indent 12 }}
+      volumes:
+        - name: audit-db
+{{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ default (printf "%s-audit" (include "jit-access.fullname" .)) .Values.persistence.existingClaim }}
+{{- else }}
+          emptyDir: {}
+{{- end }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+      affinity:
+{{ toYaml .Values.affinity | indent 8 }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}

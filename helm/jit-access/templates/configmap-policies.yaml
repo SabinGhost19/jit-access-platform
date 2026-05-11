@@ -1,0 +1,12 @@
+{{- if .Values.policiesConfigMap.create }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.policiesConfigMap.name }}
+  namespace: {{ .Release.Namespace }}
+data:
+  blockedUsers.json: |
+{{ toJson .Values.policiesConfigMap.blockedUsers | indent 4 }}
+  antiAbuse.json: |
+{{ toJson .Values.policiesConfigMap.antiAbuse | indent 4 }}
+{{- end }}

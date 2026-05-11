@@ -24,7 +24,7 @@ def _load_policies(api: client.CoreV1Api, settings: OperatorSettings) -> Any:
     try:
         config_map = api.read_namespaced_config_map(
             name=settings.policies_configmap_name,
-            namespace=settings.request_namespace,
+            namespace=settings.policies_namespace,
         )
         return parse_policies(config_map.data)
     except ApiException:
@@ -374,7 +374,7 @@ def on_jit_request_delete(
     try:
         settings = load_settings()
         db = AuditDB(settings.db_path)
-        db.mark_expired(name, namespace)
+        db.mark_revoked(name, namespace)
         db.record_audit(
             request_name=name,
             request_namespace=namespace,
