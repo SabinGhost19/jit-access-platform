@@ -23,6 +23,12 @@ rules:
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["rolebindings"]
     verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+  # Allow binding ClusterRoles that the operator is authorised to grant (no escalation).
+  # resourceNames limits the scope: operator can only bind 'view' and 'edit', never admin/cluster-admin.
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    verbs: ["bind"]
+    resourceNames: ["view", "edit"]
   - apiGroups: ["devsecops.licenta.ro"]
     resources: ["jitaccessrequests"]
     verbs: ["get", "list", "watch", "patch", "update"]

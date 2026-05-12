@@ -1,0 +1,84 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: jitaccessrequests.devsecops.licenta.ro
+spec:
+  group: devsecops.licenta.ro
+  names:
+    kind: JITAccessRequest
+    plural: jitaccessrequests
+    singular: jitaccessrequest
+    shortNames:
+      - jitar
+  scope: Namespaced
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - developerId
+                - targetNamespace
+              properties:
+                developerId:
+                  type: string
+                targetNamespace:
+                  type: string
+                requestedRole:
+                  type: string
+                  default: view
+                duration:
+                  type: string
+                  default: 30m
+                reason:
+                  type: string
+            status:
+              type: object
+              properties:
+                state:
+                  type: string
+                  enum:
+                    - ACTIVE
+                    - EXPIRED
+                    - REVOKED
+                    - TAMPERED
+                    - RATE_LIMITED
+                    - QUOTA_EXCEEDED
+                    - REJECTED
+                message:
+                  type: string
+                sessionId:
+                  type: string
+                temporaryServiceAccount:
+                  type: string
+                roleBindingName:
+                  type: string
+                temporaryToken:
+                  type: string
+                expiresAt:
+                  type: string
+                tokenIssued:
+                  type: boolean
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: State
+          type: string
+          jsonPath: .status.state
+        - name: Developer
+          type: string
+          jsonPath: .spec.developerId
+        - name: Namespace
+          type: string
+          jsonPath: .spec.targetNamespace
+        - name: Role
+          type: string
+          jsonPath: .spec.requestedRole
+        - name: Expires
+          type: string
+          jsonPath: .status.expiresAt
