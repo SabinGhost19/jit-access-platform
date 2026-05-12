@@ -1,7 +1,7 @@
 operator:
   image:
     repository: ghcr.io/sabinghost19/jit-access-platform-operator
-    tag: sha-d14798d83a173cac10e0e9359f77e4c7111185ae
+    tag: v0.2.0
     pullPolicy: IfNotPresent
   resources: {}
   securityContext:
