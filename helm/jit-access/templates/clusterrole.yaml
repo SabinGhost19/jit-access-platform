@@ -4,6 +4,10 @@ kind: ClusterRole
 metadata:
   name: {{ include "jit-access.fullname" . }}
 rules:
+  # Required by kopf to verify CRD existence at startup
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["configmaps"]
     verbs: ["get", "list", "watch"]

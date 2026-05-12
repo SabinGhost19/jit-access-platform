@@ -8,8 +8,8 @@ operator:
     runAsNonRoot: true
     runAsUser: 10001
     runAsGroup: 10001
+  podSecurityContext:
     fsGroup: 10001
-  podSecurityContext: {}
   env:
     requestNamespace: default
     policiesConfigMap: jit-security-policies
