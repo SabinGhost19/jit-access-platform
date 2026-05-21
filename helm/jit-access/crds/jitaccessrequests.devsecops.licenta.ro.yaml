@@ -37,12 +37,16 @@ spec:
                   default: 30m
                 reason:
                   type: string
+                requiresApproval:
+                  type: boolean
+                  default: true
             status:
               type: object
               properties:
                 state:
                   type: string
                   enum:
+                    - PENDING_APPROVAL
                     - ACTIVE
                     - EXPIRED
                     - REVOKED
@@ -64,6 +68,12 @@ spec:
                   type: string
                 tokenIssued:
                   type: boolean
+                approved:
+                  type: boolean
+                approvedBy:
+                  type: string
+                approvedAt:
+                  type: string
       subresources:
         status: {}
       additionalPrinterColumns:

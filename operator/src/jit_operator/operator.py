@@ -127,18 +127,17 @@ def startup_fn(**_: Any) -> None:
     config.load_incluster_config()
 
 
-@kopf.on.create("devsecops.licenta.ro", "v1", "jitaccessrequests")
-def on_jit_request_create(
+def _provision_active_session(
     spec: dict[str, Any],
     status: dict[str, Any],
     name: str,
     namespace: str,
     patch: kopf.Patch,
     logger: kopf.Logger,
-    **_: Any,
 ) -> None:
+    """Run anti-abuse + create SA/RB + issue token. Sets status to ACTIVE or rejection state."""
     if status.get("state") == "ACTIVE" and status.get("tokenIssued") is True:
-        logger.info("Request %s is already active. Skipping duplicate create processing.", name)
+        logger.info("Request %s is already active. Skipping duplicate processing.", name)
         return
 
     settings = load_settings()
@@ -239,6 +238,48 @@ def on_jit_request_create(
         status="ACTIVE",
         message=decision.message,
     )
+
+
+@kopf.on.create("devsecops.licenta.ro", "v1", "jitaccessrequests")
+def on_jit_request_create(
+    spec: dict[str, Any],
+    status: dict[str, Any],
+    name: str,
+    namespace: str,
+    patch: kopf.Patch,
+    logger: kopf.Logger,
+    **_: Any,
+) -> None:
+    requires_approval = bool(spec.get("requiresApproval", True))
+    if requires_approval and not status.get("approved"):
+        patch.status["state"] = "PENDING_APPROVAL"
+        patch.status["message"] = "Awaiting manual approval from a platform operator."
+        patch.status["tokenIssued"] = False
+        patch.status["approved"] = False
+        logger.info("Request %s parked in PENDING_APPROVAL", name)
+        return
+
+    _provision_active_session(spec, status, name, namespace, patch, logger)
+
+
+@kopf.on.field("devsecops.licenta.ro", "v1", "jitaccessrequests", field="status.approved")
+def on_jit_request_approval(
+    spec: dict[str, Any],
+    status: dict[str, Any],
+    new: Any,
+    old: Any,
+    name: str,
+    namespace: str,
+    patch: kopf.Patch,
+    logger: kopf.Logger,
+    **_: Any,
+) -> None:
+    if new is not True or old is True:
+        return
+    if status.get("state") == "ACTIVE" and status.get("tokenIssued") is True:
+        return
+    logger.info("Approval received for %s by %s — provisioning session", name, status.get("approvedBy", "unknown"))
+    _provision_active_session(spec, status, name, namespace, patch, logger)
 
 
 @kopf.timer("devsecops.licenta.ro", "v1", "jitaccessrequests", interval=30.0)
