@@ -127,6 +127,20 @@ def startup_fn(**_: Any) -> None:
     config.load_incluster_config()
 
 
+# The anti-abuse engine returns granular reason codes (DENIED_COOLDOWN, ...), but the CRD's
+# `status.state` enum is a coarse lifecycle (RATE_LIMITED / QUOTA_EXCEEDED / REJECTED / ...).
+# Writing a granular code straight into status.state makes the apiserver reject the patch with
+# HTTP 422. Map each reason to a valid lifecycle state here; the granular reason is preserved in
+# status.message and in the audit log. The `.get(..., "REJECTED")` fallback guarantees any future
+# reason code still resolves to a valid enum value instead of 422-ing the operator.
+_REJECTION_STATE_MAP = {
+    "DENIED_COOLDOWN": "RATE_LIMITED",
+    "DENIED_CONCURRENT_LIMIT": "QUOTA_EXCEEDED",
+    "DENIED_DAILY_QUOTA": "QUOTA_EXCEEDED",
+    "BLOCKED_BY_POLICY": "REJECTED",
+}
+
+
 def _provision_active_session(
     spec: dict[str, Any],
     status: dict[str, Any],
@@ -156,7 +170,8 @@ def _provision_active_session(
     decision = anti_abuse.evaluate(developer_id=developer_id, duration=duration)
 
     if not decision.approved:
-        patch.status["state"] = decision.status
+        # Coarse CRD lifecycle state (valid enum); granular reason kept in message + audit DB.
+        patch.status["state"] = _REJECTION_STATE_MAP.get(decision.status, "REJECTED")
         patch.status["message"] = decision.message
         patch.status["tokenIssued"] = False
 
