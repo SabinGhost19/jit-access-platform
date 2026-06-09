@@ -206,14 +206,21 @@ class AuditDB:
             )
 
     def mark_revoked(self, request_name: str, request_namespace: str) -> None:
+        # A revoked session ENDS at revocation time. Record that as expires_at — capped so we
+        # never push it past the original scheduled expiry — because the anti-abuse cooldown is
+        # measured from last_ended_session_at(). Without this, revoking a long session early
+        # would compute the cooldown from the original (future) expiry, locking the developer
+        # out for the entire unused duration plus the cooldown window.
+        now = datetime.now(timezone.utc).isoformat()
         with self._connect() as connection:
             connection.execute(
                 """
                 UPDATE jit_sessions
-                SET status = 'REVOKED'
+                SET status = 'REVOKED',
+                    expires_at = MIN(COALESCE(expires_at, ?), ?)
                 WHERE request_name = ? AND request_namespace = ?
                 """,
-                (request_name, request_namespace),
+                (now, now, request_name, request_namespace),
             )
 
     def list_active_rolebindings(self) -> list[SessionRow]:
